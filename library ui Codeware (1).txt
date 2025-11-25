@@ -1,0 +1,492 @@
+local LocalMaze = {}
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+function LocalMaze:CreateWindow(Title)
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Parent = playerGui
+	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	screenGui.ResetOnSpawn = false
+
+	local mainFrame = Instance.new("Frame")
+	mainFrame.Name = "MainFrame"
+	mainFrame.Parent = screenGui
+	mainFrame.BackgroundColor3 = Color3.fromRGB(21,21,21)
+	mainFrame.BackgroundTransparency = 0.6
+	mainFrame.Position = UDim2.new(0,136,0,24)
+	mainFrame.Size = UDim2.new(0,444,0,284)
+	mainFrame.BorderSizePixel = 0
+	mainFrame.Active = true
+	mainFrame.Draggable = true
+	Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0,8)
+
+	local topbar = Instance.new("Frame")
+	topbar.Parent = mainFrame
+	topbar.BackgroundColor3 = Color3.fromRGB(76,76,76)
+	topbar.BackgroundTransparency = 0.6
+	topbar.Size = UDim2.new(1,0,0,62)
+	topbar.BorderSizePixel = 0
+	Instance.new("UICorner", topbar).CornerRadius = UDim.new(0,8)
+
+	local gradientBar = Instance.new("Frame")
+	gradientBar.Parent = topbar
+	gradientBar.BackgroundColor3 = Color3.new(1,1,1)
+	gradientBar.Position = UDim2.new(0,0,0,50)
+	gradientBar.Size = UDim2.new(1,0,0,12)
+	gradientBar.BorderSizePixel = 0
+	local gradient = Instance.new("UIGradient", gradientBar)
+	gradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0,Color3.fromRGB(0,255,255)),
+		ColorSequenceKeypoint.new(1,Color3.fromRGB(255,0,255))
+	}
+
+	local titleFrame = Instance.new("Frame")
+	titleFrame.Parent = topbar
+	titleFrame.BackgroundTransparency = 1
+	titleFrame.Size = UDim2.new(1,0,0,50)
+
+	local windowTitle = Instance.new("TextLabel")
+	windowTitle.Parent = titleFrame
+	windowTitle.BackgroundTransparency = 1
+	windowTitle.Position = UDim2.new(0,12,0,14)
+	windowTitle.Size = UDim2.new(0,308,0,22)
+	windowTitle.FontFace = Font.new("rbxasset://fonts/families/HighwayGothic.json")
+	windowTitle.Text = Title or "LocalMaze"
+	windowTitle.TextColor3 = Color3.fromRGB(255,255,255)
+	windowTitle.TextSize = 20
+	windowTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+	local minimizeBtn = Instance.new("TextButton")
+	minimizeBtn.Parent = titleFrame
+	minimizeBtn.BackgroundColor3 = Color3.fromRGB(151,151,151)
+	minimizeBtn.Position = UDim2.new(0,366,0,10)
+	minimizeBtn.Size = UDim2.new(0,32,0,32)
+	minimizeBtn.Text = "[]"
+	minimizeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+	minimizeBtn.FontFace = Font.new("rbxasset://fonts/families/FredokaOne.json")
+	minimizeBtn.TextSize = 20
+	minimizeBtn.BorderSizePixel = 0
+	Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0,8)
+
+	local closeBtn = Instance.new("TextButton")
+	closeBtn.Parent = titleFrame
+	closeBtn.BackgroundColor3 = Color3.fromRGB(255,0,0)
+	closeBtn.Position = UDim2.new(0,402,0,10)
+	closeBtn.Size = UDim2.new(0,32,0,32)
+	closeBtn.Text = "X"
+	closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+	closeBtn.FontFace = Font.new("rbxasset://fonts/families/FredokaOne.json")
+	closeBtn.TextSize = 20
+	closeBtn.BorderSizePixel = 0
+	Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,8)
+
+	local tabScroll = Instance.new("ScrollingFrame")
+	tabScroll.Parent = mainFrame
+	tabScroll.BackgroundColor3 = Color3.fromRGB(21,21,21)
+	tabScroll.BackgroundTransparency = 0.6
+	tabScroll.Position = UDim2.new(0,4,0,68)
+	tabScroll.Size = UDim2.new(0,138,0,212)
+	tabScroll.BorderSizePixel = 0
+	tabScroll.ScrollBarThickness = 4
+	tabScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	Instance.new("UICorner", tabScroll).CornerRadius = UDim.new(0,8)
+	local tabList = Instance.new("UIListLayout", tabScroll)
+	tabList.Padding = UDim.new(0,6)
+	tabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+	local contentScroll = Instance.new("ScrollingFrame")
+	contentScroll.Parent = mainFrame
+	contentScroll.BackgroundColor3 = Color3.fromRGB(101,101,101)
+	contentScroll.BackgroundTransparency = 0.6
+	contentScroll.Position = UDim2.new(0,146,0,70)
+	contentScroll.Size = UDim2.new(0,288,0,208)
+	contentScroll.BorderSizePixel = 0
+	contentScroll.ScrollBarThickness = 6
+	contentScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	Instance.new("UICorner", contentScroll).CornerRadius = UDim.new(0,8)
+
+	local minimized = false
+	minimizeBtn.MouseButton1Click:Connect(function()
+		minimized = not minimized
+		mainFrame.Size = minimized and UDim2.new(0,444,0,62) or UDim2.new(0,444,0,284)
+		tabScroll.Visible = not minimized
+		contentScroll.Visible = not minimized
+	end)
+
+	closeBtn.MouseButton1Click:Connect(function()
+		screenGui:Destroy()
+	end)
+
+	local activeContent = nil
+
+	function LocalMaze:AddTab(name)
+		local tabBtn = Instance.new("TextButton")
+		tabBtn.Parent = tabScroll
+		tabBtn.BackgroundColor3 = Color3.fromRGB(101,101,101)
+		tabBtn.BackgroundTransparency = 0.2
+		tabBtn.Size = UDim2.new(0,120,0,32)
+		tabBtn.FontFace = Font.new("rbxasset://fonts/families/HighwayGothic.json")
+		tabBtn.Text = name
+		tabBtn.TextColor3 = Color3.fromRGB(255,255,255)
+		tabBtn.TextSize = 20
+		tabBtn.AutoButtonColor = false
+		tabBtn.BorderSizePixel = 0
+		Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0,6)
+
+		local tabContent = Instance.new("Frame")
+		tabContent.Parent = contentScroll
+		tabContent.BackgroundTransparency = 1
+		tabContent.Size = UDim2.new(1,-10,0,0)
+		tabContent.Visible = false
+		local list = Instance.new("UIListLayout", tabContent)
+		list.Padding = UDim.new(0,6)
+		list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+		tabBtn.MouseButton1Click:Connect(function()
+			if activeContent then activeContent.Visible = false end
+			tabContent.Visible = true
+			activeContent = tabContent
+			contentScroll.CanvasPosition = Vector2.new(0,0)
+		end)
+
+		if not activeContent then
+			tabContent.Visible = true
+			activeContent = tabContent
+			tabBtn.BackgroundTransparency = 0
+		end
+
+		local tab = {}
+
+		function tab:AddButton(title, desc, callback)
+			local frame = Instance.new("Frame")
+			frame.Size = UDim2.new(0,276,0,50)
+			frame.BackgroundColor3 = Color3.fromRGB(31,31,31)
+			frame.BackgroundTransparency = 0.2
+			frame.BorderSizePixel = 0
+			frame.Parent = tabContent
+			Instance.new("UICorner", frame).CornerRadius = UDim.new(0,6)
+
+			local t = Instance.new("TextLabel")
+			t.Text = title
+			t.Position = UDim2.new(0,6,0,6)
+			t.Size = UDim2.new(0,178,0,22)
+			t.BackgroundTransparency = 1
+			t.TextColor3 = Color3.fromRGB(255,255,255)
+			t.FontFace = Font.new("rbxasset://fonts/families/HighwayGothic.json")
+			t.TextSize = 20
+			t.TextXAlignment = Enum.TextXAlignment.Left
+			t.Parent = frame
+
+			if desc then
+				local d = Instance.new("TextLabel")
+				d.Text = desc
+				d.Position = UDim2.new(0,8,0,28)
+				d.Size = UDim2.new(0,178,0,14)
+				d.BackgroundTransparency = 1
+				d.TextColor3 = Color3.fromRGB(201,201,201)
+				d.FontFace = Font.new("rbxasset://fonts/families/HighwayGothic.json")
+				d.TextSize = 20
+				d.TextXAlignment = Enum.TextXAlignment.Left
+				d.Parent = frame
+			end
+
+			local btn = Instance.new("TextButton")
+			btn.Text = "Execute"
+			btn.Size = UDim2.new(0,62,0,26)
+			btn.Position = UDim2.new(0,200,0,14)
+			btn.BackgroundColor3 = Color3.fromRGB(0,201,0)
+			btn.TextColor3 = Color3.fromRGB(255,255,255)
+			btn.FontFace = Font.new("rbxasset://fonts/families/HighwayGothic.json")
+			btn.TextSize = 20
+			btn.BorderSizePixel = 0
+			btn.Parent = frame
+			Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+			btn.MouseButton1Click:Connect(callback or function() end)
+		end
+
+		function tab:AddLabel(text)
+			local frame = Instance.new("Frame")
+			frame.Size = UDim2.new(0,276,0,48)
+			frame.BackgroundColor3 = Color3.fromRGB(31,31,31)
+			frame.BackgroundTransparency = 0.2
+			frame.BorderSizePixel = 0
+			frame.Parent = tabContent
+			Instance.new("UICorner", frame).CornerRadius = UDim.new(0,6)
+
+			local label = Instance.new("TextLabel")
+			label.Text = text
+			label.Position = UDim2.new(0,12,0,14)
+			label.Size = UDim2.new(0,250,0,22)
+			label.BackgroundTransparency = 1
+			label.TextColor3 = Color3.fromRGB(255,255,255)
+			label.FontFace = Font.new("rbxasset://fonts/families/HighwayGothic.json")
+			label.TextSize = 20
+			label.TextXAlignment = Enum.TextXAlignment.Left
+			label.Parent = frame
+		end
+
+		function tab:AddToggle(text, default, onCallback, offCallback)
+			local enabled = default or false
+
+			local frame = Instance.new("Frame")
+			frame.Size = UDim2.new(0,276,0,48)
+			frame.BackgroundColor3 = Color3.fromRGB(31,31,31)
+			frame.BackgroundTransparency = 0.2
+			frame.BorderSizePixel = 0
+			frame.Parent = tabContent
+			Instance.new("UICorner", frame).CornerRadius = UDim.new(0,6)
+
+			local title = Instance.new("TextLabel")
+			title.Text = text
+			title.Position = UDim2.new(0,12,0,0)
+			title.Size = UDim2.new(0,200,0,48)
+			title.BackgroundTransparency = 1
+			title.TextColor3 = Color3.fromRGB(255,255,255)
+			title.FontFace = Font.new("rbxasset://fonts/families/HighwayGothic.json")
+			title.TextSize = 20
+			title.TextXAlignment = Enum.TextXAlignment.Left
+			title.Parent = frame
+
+			local track = Instance.new("Frame")
+			track.Size = UDim2.new(0,50,0,26)
+			track.Position = UDim2.new(0,214,0,11)
+			track.BackgroundColor3 = Color3.fromRGB(80,80,80)
+			track.BorderSizePixel = 0
+			track.Parent = frame
+			Instance.new("UICorner", track).CornerRadius = UDim.new(0,13)
+
+			local thumb = Instance.new("Frame")
+			thumb.Size = UDim2.new(0,22,0,22)
+			thumb.Position = enabled and UDim2.new(0,26,0,2) or UDim2.new(0,2,0,2)
+			thumb.BackgroundColor3 = Color3.fromRGB(255,255,255)
+			thumb.BorderSizePixel = 0
+			thumb.Parent = track
+			Instance.new("UICorner", thumb).CornerRadius = UDim.new(1,0)
+
+			local hitbox = Instance.new("TextButton")
+			hitbox.Size = UDim2.new(0,60,0,36)
+			hitbox.Position = UDim2.new(0,209,0,6)
+			hitbox.BackgroundTransparency = 1
+			hitbox.Text = ""
+			hitbox.Parent = frame
+
+			hitbox.MouseButton1Click:Connect(function()
+				enabled = not enabled
+				track.BackgroundColor3 = enabled and Color3.fromRGB(0,201,0) or Color3.fromRGB(80,80,80)
+				TweenService:Create(thumb, TweenInfo.new(0.15), {Position = enabled and UDim2.new(0,26,0,2) or UDim2.new(0,2,0,2)}):Play()
+				if enabled and onCallback then onCallback() end
+				if not enabled and offCallback then offCallback() end
+			end)
+
+			if enabled and onCallback then task.spawn(onCallback) end
+		end
+
+		function tab:AddSlider(text, min, max, default, callback)
+			local value = default or min
+
+			local frame = Instance.new("Frame")
+			frame.Size = UDim2.new(0,276,0,60)
+			frame.BackgroundColor3 = Color3.fromRGB(31,31,31)
+			frame.BackgroundTransparency = 0.2
+			frame.BorderSizePixel = 0
+			frame.Parent = tabContent
+			Instance.new("UICorner", frame).CornerRadius = UDim.new(0,6)
+
+			local title = Instance.new("TextLabel")
+			title.Text = text
+			title.Position = UDim2.new(0,12,0,6)
+			title.Size = UDim2.new(0,200,0,20)
+			title.BackgroundTransparency = 1
+			title.TextColor3 = Color3.fromRGB(255,255,255)
+			title.FontFace = Font.new("rbxasset://fonts/families/HighwayGothic.json")
+			title.TextSize = 20
+			title.TextXAlignment = Enum.TextXAlignment.Left
+			title.Parent = frame
+
+			local valueLabel = Instance.new("TextLabel")
+			valueLabel.Text = tostring(value)
+			valueLabel.Position = UDim2.new(0,220,0,6)
+			valueLabel.Size = UDim2.new(0,40,0,20)
+			valueLabel.BackgroundTransparency = 1
+			valueLabel.TextColor3 = Color3.fromRGB(255,255,255)
+			valueLabel.FontFace = Font.new("rbxasset://fonts/families/HighwayGothic.json")
+			valueLabel.TextSize = 18
+			valueLabel.Parent = frame
+
+			local track = Instance.new("Frame")
+			track.Size = UDim2.new(0,252,0,10)
+			track.Position = UDim2.new(0,12,0,36)
+			track.BackgroundColor3 = Color3.fromRGB(80,80,80)
+			track.BorderSizePixel = 0
+			track.Parent = frame
+			Instance.new("UICorner", track).CornerRadius = UDim.new(0,5)
+
+			local fill = Instance.new("Frame")
+			fill.Size = UDim2.new((value-min)/(max-min),0,1,0)
+			fill.BackgroundColor3 = Color3.fromRGB(0,201,0)
+			fill.BorderSizePixel = 0
+			fill.Parent = track
+			Instance.new("UICorner", fill).CornerRadius = UDim.new(0,5)
+
+			local thumb = Instance.new("Frame")
+			thumb.Size = UDim2.new(0,20,0,20)
+			thumb.Position = UDim2.new((value-min)/(max-min),-10,0,-5)
+			thumb.BackgroundColor3 = Color3.fromRGB(255,255,255)
+			thumb.BorderSizePixel = 0
+			thumb.Parent = track
+			Instance.new("UICorner", thumb).CornerRadius = UDim.new(1,0)
+
+			local dragging = false
+			local input = Instance.new("TextButton")
+			input.Size = UDim2.new(1,0,1,0)
+			input.BackgroundTransparency = 1
+			input.Text = ""
+			input.Parent = track
+
+			input.MouseButton1Down:Connect(function() dragging = true end)
+			input.MouseButton1Up:Connect(function() dragging = false end)
+			input.MouseMoved:Connect(function(x)
+				if dragging then
+					local percent = math.clamp((x - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+					value = math.floor(min + percent * (max - min))
+					fill.Size = UDim2.new(percent,0,1,0)
+					thumb.Position = UDim2.new(percent,-10,0,-5)
+					valueLabel.Text = tostring(value)
+					if callback then callback(value) end
+				end
+			end)
+
+			UIS.InputEnded:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+			end)
+		end
+
+		function tab:AddTextbox(title, placeholder, callback)
+			local frame = Instance.new("Frame")
+			frame.Size = UDim2.new(0,276,0,48)
+			frame.BackgroundColor3 = Color3.fromRGB(31,31,31)
+			frame.BackgroundTransparency = 0.2
+			frame.BorderSizePixel = 0
+			frame.Parent = tabContent
+			Instance.new("UICorner", frame).CornerRadius = UDim.new(0,6)
+
+			local label = Instance.new("TextLabel")
+			label.Text = title
+			label.Position = UDim2.new(0,12,0,0)
+			label.Size = UDim2.new(0,200,0,48)
+			label.BackgroundTransparency = 1
+			label.TextColor3 = Color3.fromRGB(255,255,255)
+			label.FontFace = Font.new("rbxasset://fonts/families/HighwayGothic.json")
+			label.TextSize = 20
+			label.TextXAlignment = Enum.TextXAlignment.Left
+			label.Parent = frame
+
+			local box = Instance.new("TextBox")
+			box.Size = UDim2.new(0,100,0,28)
+			box.Position = UDim2.new(0,162,0,10)
+			box.BackgroundColor3 = Color3.fromRGB(50,50,50)
+			box.BorderSizePixel = 0
+			box.PlaceholderText = placeholder
+			box.Text = ""
+			box.TextColor3 = Color3.fromRGB(255,255,255)
+			box.FontFace = Font.new("rbxasset://fonts/families/HighwayGothic.json")
+			box.TextSize = 18
+			box.Parent = frame
+			Instance.new("UICorner", box).CornerRadius = UDim.new(0,6)
+
+			box.FocusLost:Connect(function(enter)
+				if enter and callback then
+					callback(box.Text)
+				end
+			end)
+		end
+
+		function tab:AddDropdown(title, items, callback)
+			local selected = items[1]
+			local open = false
+
+			local frame = Instance.new("Frame")
+			frame.Size = UDim2.new(0,276,0,48)
+			frame.BackgroundColor3 = Color3.fromRGB(31,31,31)
+			frame.BackgroundTransparency = 0.2
+			frame.BorderSizePixel = 0
+			frame.Parent = tabContent
+			Instance.new("UICorner", frame).CornerRadius = UDim.new(0,6)
+
+			local label = Instance.new("TextLabel")
+			label.Text = title
+			label.Position = UDim2.new(0,12,0,0)
+			label.Size = UDim2.new(0,150,0,48)
+			label.BackgroundTransparency = 1
+			label.TextColor3 = Color3.fromRGB(255,255,255)
+			label.FontFace = Font.new("rbxasset://fonts/families/HighwayGothic.json")
+			label.TextSize = 20
+			label.TextXAlignment = Enum.TextXAlignment.Left
+			label.Parent = frame
+
+			local btn = Instance.new("TextButton")
+			btn.Size = UDim2.new(0,100,0,28)
+			btn.Position = UDim2.new(0,162,0,10)
+			btn.BackgroundColor3 = Color3.fromRGB(151,151,151)
+			btn.BackgroundTransparency = 0.2
+			btn.Text = selected
+			btn.TextColor3 = Color3.fromRGB(255,255,255)
+			btn.FontFace = Font.new("rbxasset://fonts/families/HighwayGothic.json")
+			btn.TextSize = 18
+			btn.BorderSizePixel = 0
+			btn.Parent = frame
+			Instance.new("UICorner", btn)
+
+			local list = Instance.new("Frame")
+			list.Size = UDim2.new(0,100,0,0)
+			list.Position = UDim2.new(0,162,0,40)
+			list.BackgroundColor3 = Color3.fromRGB(31,31,31)
+			list.BackgroundTransparency = 0.2
+			list.Visible = false
+			list.BorderSizePixel = 0
+			list.Parent = frame
+			Instance.new("UICorner", list)
+
+			local layout = Instance.new("UIListLayout", list)
+
+			local function rebuild()
+				for _,v in list:GetChildren() do if v:IsA("TextButton") then v:Destroy() end end
+				for _,item in items do
+					local opt = Instance.new("TextButton")
+					opt.Size = UDim2.new(1,0,0,30)
+					opt.BackgroundTransparency = 1
+					opt.Text = item
+					opt.TextColor3 = Color3.fromRGB(255,255,255)
+					opt.FontFace = Font.new("rbxasset://fonts/families/HighwayGothic.json")
+					opt.TextSize = 18
+					opt.BorderSizePixel = 0
+					opt.Parent = list
+					opt.MouseButton1Click:Connect(function()
+						selected = item
+						btn.Text = item
+						open = false
+						list.Visible = false
+						if callback then callback(item) end
+					end)
+				end
+				list.Size = UDim2.new(0,100,0,#items*30)
+			end
+
+			rebuild()
+
+			btn.MouseButton1Click:Connect(function()
+				open = not open
+				list.Visible = open
+			end)
+		end
+
+		return tab
+	end
+
+	return LocalMaze
+end
+
+return LocalMaze
