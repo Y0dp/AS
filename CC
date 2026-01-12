@@ -804,30 +804,26 @@ end
   end
   
 function AddToggle(parent, Configs)
-    local ToggleName = Configs.Name or "Toggle"
+    local Name = Configs.Name or "Toggle"
     local Default = Configs.Default or false
     local Callback = Configs.Callback or function() end
 
-    local ON_COLOR  = Color3.fromRGB(0, 200, 0)
-    local OFF_COLOR = Color3.fromRGB(60, 60, 60)
+    local ON  = Color3.fromRGB(0, 200, 0)
+    local OFF = Color3.fromRGB(60, 60, 60)
 
     local Button = Create("TextButton", parent, {
-        Size = UDim2.new(0, 32, 0, 32),
-        BackgroundColor3 = OFF_COLOR,
+        Size = UDim2.new(1, 0, 0, 32),
+        BackgroundColor3 = Configs_HUB.Cor_Options,
         Text = "",
         AutoButtonColor = false
     })
-    Corner(Button, {CornerRadius = UDim.new(1, 0)})
+    Corner(Button)
+    Stroke(Button)
 
-    local StrokeUI = Stroke(Button, {
-        Thickness = 2,
-        Color = OFF_COLOR
-    })
-
-    local TextLabel = Create("TextLabel", parent, {
-        Text = ToggleName,
-        Size = UDim2.new(1, -45, 0, 32),
-        Position = UDim2.new(0, 40, 0, 0),
+    local Label = Create("TextLabel", Button, {
+        Text = Name,
+        Size = UDim2.new(1, -50, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
         BackgroundTransparency = 1,
         TextXAlignment = "Left",
         TextColor3 = Configs_HUB.Cor_Text,
@@ -835,29 +831,61 @@ function AddToggle(parent, Configs)
         TextSize = Configs_HUB.Text_Size
     })
 
-    local OnOff = Default
+    local Icon = Create("Frame", Button, {
+        Size = UDim2.new(0, 26, 0, 26),
+        Position = UDim2.new(1, -36, 0.5, 0),
+        AnchorPoint = Vector2.new(0, 0.5),
+        BackgroundColor3 = OFF
+    })
+    Corner(Icon, {CornerRadius = UDim.new(1,0)})
 
-    local function SetState(state)
-        OnOff = state
-        if state then
-            CreateTween(Button, "BackgroundColor3", ON_COLOR, 0.2, false)
-            CreateTween(StrokeUI, "Color", ON_COLOR, 0.2, false)
-            CreateTween(TextLabel, "TextColor3", ON_COLOR, 0.2, false)
+    local IconStroke = Stroke(Icon, {
+        Thickness = 2,
+        Color = OFF
+    })
+
+    local Arc1 = Create("Frame", Icon, {
+        Size = UDim2.new(0.7, 0, 0.7, 0),
+        Position = UDim2.new(0.15, 0, 0.15, 0),
+        BackgroundTransparency = 1
+    })
+    Stroke(Arc1, {Thickness = 2, Color = Color3.fromRGB(255,255,255)})
+
+    local Arc2 = Create("Frame", Icon, {
+        Size = UDim2.new(0.4, 0, 0.4, 0),
+        Position = UDim2.new(0.3, 0, 0.3, 0),
+        BackgroundTransparency = 1
+    })
+    Stroke(Arc2, {Thickness = 2, Color = Color3.fromRGB(255,255,255)})
+
+    local Dot = Create("Frame", Icon, {
+        Size = UDim2.new(0, 4, 0, 4),
+        Position = UDim2.new(0.5, -2, 0.5, -2),
+        BackgroundColor3 = Color3.fromRGB(255,255,255)
+    })
+    Corner(Dot, {CornerRadius = UDim.new(1,0)})
+
+    local State = Default
+
+    local function Set(v)
+        State = v
+        if v then
+            CreateTween(Icon, "BackgroundColor3", ON, 0.15, false)
+            CreateTween(IconStroke, "Color", ON, 0.15, false)
         else
-            CreateTween(Button, "BackgroundColor3", OFF_COLOR, 0.2, false)
-            CreateTween(StrokeUI, "Color", OFF_COLOR, 0.2, false)
-            CreateTween(TextLabel, "TextColor3", Configs_HUB.Cor_Text, 0.2, false)
+            CreateTween(Icon, "BackgroundColor3", OFF, 0.15, false)
+            CreateTween(IconStroke, "Color", OFF, 0.15, false)
         end
-        Callback(OnOff)
+        Callback(State)
     end
 
-    SetState(OnOff)
+    Set(State)
 
-    Button.MouseButton1Click:Connect(function()
-        SetState(not OnOff)
+    Icon.MouseButton1Click:Connect(function()
+        Set(not State)
     end)
 
-    return {Button, StrokeUI, OnOff, Callback}
+    return {Icon, IconStroke, State, Callback}
 end
   
   function AddMobileToggle(Configs)
